@@ -1,5 +1,5 @@
 # Week 1 Mini-Project: Custom Python Linter
-
+ 
 ## Overview
 
 Build a custom Python linter that enforces at least 5 style and correctness rules using static analysis techniques from Module 1.
