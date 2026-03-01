@@ -17,19 +17,16 @@
    ---------------------------------------------------------------- *)
 
 (** [square x] returns x * x. *)
-let square (_x : int) : int =
-  (* EXERCISE: return the square of _x *)
-  failwith "TODO: square"
+let square (x : int) : int =
+  x * x
 
 (** [is_empty s] returns true if the string [s] has length 0. *)
-let is_empty (_s : string) : bool =
-  (* EXERCISE: check if the string is empty *)
-  failwith "TODO: is_empty"
+let is_empty (s : string) : bool =
+  String.length s = 0
 
 (** [greet name] returns the string "Hello, <name>!". *)
-let greet (_name : string) : string =
-  (* EXERCISE: use string concatenation (^) or Printf.sprintf *)
-  failwith "TODO: greet"
+let greet (name : string) : string =
+  "Hello, " ^ name ^ "!"
 
 (* ----------------------------------------------------------------
    Part 2: Character Classification
@@ -39,15 +36,13 @@ let greet (_name : string) : string =
    ---------------------------------------------------------------- *)
 
 (** [is_digit c] returns true if c is '0'..'9'. *)
-let is_digit (_c : char) : bool =
-  (* EXERCISE: use comparison operators on chars *)
-  failwith "TODO: is_digit"
+let is_digit (c : char) : bool =
+  c >= '0' && c <= '9'
 [@@warning "-32"]
 
 (** [is_alpha c] returns true if c is 'a'..'z' or 'A'..'Z' or '_'. *)
-let is_alpha (_c : char) : bool =
-  (* EXERCISE: check all three ranges *)
-  failwith "TODO: is_alpha"
+let is_alpha (c : char) : bool =
+  (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c = '_'
 [@@warning "-32"]
 
 (** [classify_char c] returns a string describing the character:
@@ -55,9 +50,12 @@ let is_alpha (_c : char) : bool =
     - "alpha"    if c is a letter or underscore
     - "operator" if c is one of '+', '-', '*', '/'
     - "unknown"  otherwise *)
-let classify_char (_c : char) : string =
-  (* EXERCISE: use the functions above + pattern matching or if/else *)
-  failwith "TODO: classify_char"
+let classify_char (c : char) : string =
+  if is_digit c then "digit"
+  else if is_alpha c then "alpha"
+  else match c with
+    | '+' | '-' | '*' | '/' -> "operator"
+    | _ -> "unknown"
 
 (* ----------------------------------------------------------------
    Part 3: Token Types and Formatting
@@ -71,9 +69,8 @@ type token = string * string
 
 (** [format_token tok] returns a string like "[keyword: if]".
     Given token ("keyword", "if"), return "[keyword: if]". *)
-let format_token ((_cat, _text) : token) : string =
-  (* EXERCISE: use Printf.sprintf or string concatenation *)
-  failwith "TODO: format_token"
+let format_token ((cat, text) : token) : string =
+  Printf.sprintf "[%s: %s]" cat text
 
 (** [make_token text] creates a token by classifying the first
     character of [text]:
@@ -81,9 +78,11 @@ let format_token ((_cat, _text) : token) : string =
     - if the first char is a digit, return ("number", text)
     - if the first char is alpha, return ("identifier", text)
     - otherwise return ("symbol", text) *)
-let make_token (_text : string) : token =
-  (* EXERCISE: use String.length, text.[0], and your classifier *)
-  failwith "TODO: make_token"
+let make_token (text : string) : token =
+  if String.length text = 0 then ("empty", "")
+  else if is_digit text.[0] then ("number", text)
+  else if is_alpha text.[0] then ("identifier", text)
+  else ("symbol", text)
 
 (* ----------------------------------------------------------------
    Part 4: Positions (Tuples)
@@ -95,16 +94,15 @@ let make_token (_text : string) : token =
 type pos = int * int
 
 (** [format_pos p] returns a string like "line 1, col 5". *)
-let format_pos ((_line, _col) : pos) : string =
-  (* EXERCISE: use Printf.sprintf *)
-  failwith "TODO: format_pos"
+let format_pos ((line, col) : pos) : string =
+  Printf.sprintf "line %d, col %d" line col
 
 (** [advance_pos p c] returns a new position after reading char [c]:
     - if c is '\n', move to the next line (line+1, col 1)
     - otherwise, stay on the same line (line, col+1) *)
-let advance_pos ((_line, _col) : pos) (_c : char) : pos =
-  (* EXERCISE: pattern match or use if/then/else on c *)
-  failwith "TODO: advance_pos"
+let advance_pos ((line, _col) : pos) (c : char) : pos =
+  if c = '\n' then (line + 1, 1)
+  else (line, _col + 1)
 
 (** [scan_positions s] folds over the characters in [s], starting
     at position (1, 1), advancing with each character, and returns
