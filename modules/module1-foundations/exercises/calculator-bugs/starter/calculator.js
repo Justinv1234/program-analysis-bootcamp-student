@@ -13,13 +13,12 @@
 
 // Bug 1: Undefined variable (static analysis should catch this)
 function add(a, b) {
-    return a + reslt;  // 'reslt' is not defined -- should be 'b'
+    return a + b;
 }
 
 // Bug 2: Unreachable code (static analysis should catch this)
 function subtract(a, b) {
     return a - b;
-    console.log("Subtraction complete");  // unreachable code
 }
 
 // Bug 3: Switch fallthrough (static analysis should catch this)
@@ -28,7 +27,8 @@ function calculate(operation, a, b) {
     switch (operation) {
         case "add":
             result = add(a, b);
-        case "subtract":  // missing break -- falls through from add
+            break;
+        case "subtract":
             result = subtract(a, b);
             break;
         case "multiply":
@@ -45,21 +45,26 @@ function calculate(operation, a, b) {
 
 // Bug 4: Division by zero (dynamic analysis catches this)
 function divide(a, b) {
-    return a / b;  // no check for b === 0
+    if (b === 0) {
+        return 0;
+    }
+    return a / b;
 }
 
 // Bug 5: Infinite recursion (dynamic analysis catches this)
 function factorial(n) {
-    // Missing base case for n < 0
+    if (n < 0) {
+        throw new Error("Factorial of negative number is undefined");
+    }
     if (n === 0) {
         return 1;
     }
-    return n * factorial(n - 1);  // factorial(-1) causes infinite recursion
+    return n * factorial(n - 1);
 }
 
 // Bug 6: Type coercion (dynamic analysis catches unexpected results)
 function multiply(a, b) {
-    if (a == "0" || b == "0") {  // == instead of === allows type coercion
+    if (a === 0 || b === 0) {
         return 0;
     }
     return a * b;
@@ -67,7 +72,6 @@ function multiply(a, b) {
 
 // Bug 7: Unused variable (static analysis should catch this)
 function power(base, exponent) {
-    let temp = base;  // unused variable
     let result = 1;
     for (let i = 0; i < exponent; i++) {
         result = result * base;
@@ -77,10 +81,10 @@ function power(base, exponent) {
 
 // Bug 8: Constant condition (static analysis should catch this)
 function absolute(n) {
-    if (true) {  // constant condition -- should be n < 0
+    if (n < 0) {
         return -n;
     }
-    return n;  // unreachable
+    return n;
 }
 
 module.exports = {
