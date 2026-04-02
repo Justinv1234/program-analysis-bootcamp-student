@@ -33,8 +33,8 @@ module StringSet = Set.Make(String)
  *
  * Block format: (label, defined_vars, used_vars)
  *)
-let compute_use ((_label, _defs, _uses) : string * string list * string list) : StringSet.t =
-  failwith "TODO: return StringSet of used_vars"
+let compute_use ((_label, _defs, uses) : string * string list * string list) : StringSet.t =
+  StringSet.of_list uses
 
 (* compute_def: Extract the def set for a block.
  *
@@ -45,8 +45,8 @@ let compute_use ((_label, _defs, _uses) : string * string list * string list) : 
  *
  * Block format: (label, defined_vars, used_vars)
  *)
-let compute_def ((_label, _defs, _uses) : string * string list * string list) : StringSet.t =
-  failwith "TODO: return StringSet of defined_vars"
+let compute_def ((_label, defs, _uses) : string * string list * string list) : StringSet.t =
+  StringSet.of_list defs
 
 (* analyze: Run the live variables backward iterative analysis.
  *
@@ -64,6 +64,31 @@ let compute_def ((_label, _defs, _uses) : string * string list * string list) : 
  * Returns: list of (label, in_set, out_set) triples
  *)
 let analyze
-    (_blocks : (string * string list * string list * string list) list)
+    (blocks : (string * string list * string list * string list) list)
     : (string * StringSet.t * StringSet.t) list =
-  failwith "TODO: implement backward iterative fixpoint analysis"
+  let module SMap = Map.Make(String) in
+  let in_map = ref (List.fold_left (fun acc (label, _, _, _) ->
+    SMap.add label StringSet.empty acc
+  ) SMap.empty blocks) in
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    List.iter (fun (label, defs, uses, succs) ->
+      let out_b = List.fold_left (fun acc s ->
+        StringSet.union acc (SMap.find s !in_map)
+      ) StringSet.empty succs in
+      let use_set = compute_use (label, defs, uses) in
+      let def_set = compute_def (label, defs, uses) in
+      let in_b = StringSet.union use_set (StringSet.diff out_b def_set) in
+      if not (StringSet.equal in_b (SMap.find label !in_map)) then begin
+        changed := true;
+        in_map := SMap.add label in_b !in_map
+      end
+    ) blocks
+  done;
+  List.map (fun (label, _, _, succs) ->
+    let out_b = List.fold_left (fun acc s ->
+      StringSet.union acc (SMap.find s !in_map)
+    ) StringSet.empty succs in
+    (label, SMap.find label !in_map, out_b)
+  ) blocks

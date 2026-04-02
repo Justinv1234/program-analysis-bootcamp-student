@@ -30,13 +30,17 @@ open Shared_ast.Ast_types
 
     @param stmts  A flat list of statements with no branches or loops. *)
 let build_cfg_sequential (stmts : stmt list) : Cfg.cfg =
-  (* TODO:
-     1. Create three blocks: "ENTRY" (empty), "B1" (all stmts), "EXIT" (empty)
-     2. Add them to a StringMap
-     3. Build the cfg record (entry = "ENTRY", exit_label = "EXIT")
-     4. Add edges: ENTRY -> B1, B1 -> EXIT *)
-  ignore stmts;
-  failwith "TODO: build_cfg_sequential"
+  let entry = Cfg.create_block "ENTRY" [] in
+  let b1 = Cfg.create_block "B1" stmts in
+  let exit_b = Cfg.create_block "EXIT" [] in
+  let blocks = Cfg.StringMap.empty
+    |> Cfg.StringMap.add "ENTRY" entry
+    |> Cfg.StringMap.add "B1" b1
+    |> Cfg.StringMap.add "EXIT" exit_b
+  in
+  let cfg = { Cfg.entry = "ENTRY"; exit_label = "EXIT"; blocks } in
+  let cfg = Cfg.add_edge cfg "ENTRY" "B1" in
+  Cfg.add_edge cfg "B1" "EXIT"
 
 (** Build a CFG for an if-else branch.
 
@@ -72,20 +76,29 @@ let build_cfg_sequential (stmts : stmt list) : Cfg.cfg =
 
     @param stmts  Statement list containing exactly one If statement. *)
 let build_cfg_ifelse (stmts : stmt list) : Cfg.cfg =
-  (* TODO:
-     1. Partition [stmts] to find the If and the statements before/after it.
-        Hint: use a recursive helper or List.fold to split around the If.
-     2. Extract then_stmts and else_stmts from the If node.
-     3. Create blocks: ENTRY, B_cond, B_then, B_else, B_join, EXIT
-     4. Wire edges:
-          ENTRY -> B_cond
-          B_cond -> B_then
-          B_cond -> B_else
-          B_then -> B_join
-          B_else -> B_join
-          B_join -> EXIT *)
-  ignore stmts;
-  failwith "TODO: build_cfg_ifelse"
+  let rec split_if before = function
+    | [] -> failwith "no If statement found"
+    | If (_, then_stmts, else_stmts) :: after ->
+      (List.rev before, then_stmts, else_stmts, after)
+    | s :: rest -> split_if (s :: before) rest
+  in
+  let (before, then_stmts, else_stmts, after) = split_if [] stmts in
+  let blocks = Cfg.StringMap.empty
+    |> Cfg.StringMap.add "ENTRY" (Cfg.create_block "ENTRY" [])
+    |> Cfg.StringMap.add "B_cond" (Cfg.create_block "B_cond" before)
+    |> Cfg.StringMap.add "B_then" (Cfg.create_block "B_then" then_stmts)
+    |> Cfg.StringMap.add "B_else" (Cfg.create_block "B_else" else_stmts)
+    |> Cfg.StringMap.add "B_join" (Cfg.create_block "B_join" after)
+    |> Cfg.StringMap.add "EXIT" (Cfg.create_block "EXIT" [])
+  in
+  let cfg = { Cfg.entry = "ENTRY"; exit_label = "EXIT"; blocks } in
+  cfg
+  |> fun c -> Cfg.add_edge c "ENTRY" "B_cond"
+  |> fun c -> Cfg.add_edge c "B_cond" "B_then"
+  |> fun c -> Cfg.add_edge c "B_cond" "B_else"
+  |> fun c -> Cfg.add_edge c "B_then" "B_join"
+  |> fun c -> Cfg.add_edge c "B_else" "B_join"
+  |> fun c -> Cfg.add_edge c "B_join" "EXIT"
 
 (** Build a CFG for a while loop.
 
@@ -111,16 +124,26 @@ let build_cfg_ifelse (stmts : stmt list) : Cfg.cfg =
 
     @param stmts  Statement list containing exactly one While statement. *)
 let build_cfg_while (stmts : stmt list) : Cfg.cfg =
-  (* TODO:
-     1. Partition [stmts] to find the While and the stmts before/after it.
-     2. Extract the loop body from the While node.
-     3. Create blocks: ENTRY, B_pre, B_cond, B_body, B_post, EXIT
-     4. Wire edges:
-          ENTRY  -> B_pre
-          B_pre  -> B_cond
-          B_cond -> B_body    (loop body)
-          B_cond -> B_post    (loop exit)
-          B_body -> B_cond    (back edge)
-          B_post -> EXIT *)
-  ignore stmts;
-  failwith "TODO: build_cfg_while"
+  let rec split_while before = function
+    | [] -> failwith "no While statement found"
+    | While (_, body) :: after ->
+      (List.rev before, body, after)
+    | s :: rest -> split_while (s :: before) rest
+  in
+  let (before, body, after) = split_while [] stmts in
+  let blocks = Cfg.StringMap.empty
+    |> Cfg.StringMap.add "ENTRY" (Cfg.create_block "ENTRY" [])
+    |> Cfg.StringMap.add "B_pre" (Cfg.create_block "B_pre" before)
+    |> Cfg.StringMap.add "B_cond" (Cfg.create_block "B_cond" [])
+    |> Cfg.StringMap.add "B_body" (Cfg.create_block "B_body" body)
+    |> Cfg.StringMap.add "B_post" (Cfg.create_block "B_post" after)
+    |> Cfg.StringMap.add "EXIT" (Cfg.create_block "EXIT" [])
+  in
+  let cfg = { Cfg.entry = "ENTRY"; exit_label = "EXIT"; blocks } in
+  cfg
+  |> fun c -> Cfg.add_edge c "ENTRY" "B_pre"
+  |> fun c -> Cfg.add_edge c "B_pre" "B_cond"
+  |> fun c -> Cfg.add_edge c "B_cond" "B_body"
+  |> fun c -> Cfg.add_edge c "B_cond" "B_post"
+  |> fun c -> Cfg.add_edge c "B_body" "B_cond"
+  |> fun c -> Cfg.add_edge c "B_post" "EXIT"

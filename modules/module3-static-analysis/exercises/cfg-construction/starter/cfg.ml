@@ -27,39 +27,28 @@ let create_block (label : string) (stmts : Shared_ast.Ast_types.stmt list) : bas
 (* --- TODO: implement these ---------------------------------------------- *)
 
 let add_edge (cfg : cfg) (src : string) (dst : string) : cfg =
-  (* TODO: Return a new cfg where:
-     1. The block named [src] has [dst] appended to its succs list
-     2. The block named [dst] has [src] appended to its preds list
-     3. All other blocks remain unchanged
-     Hint: Look up both blocks in cfg.blocks using StringMap.find,
-     create updated copies, and build a new blocks map with StringMap.add. *)
-  ignore (cfg, src, dst);
-  failwith "TODO: add_edge"
+  let src_block = StringMap.find src cfg.blocks in
+  let dst_block = StringMap.find dst cfg.blocks in
+  let src_block = { src_block with succs = src_block.succs @ [dst] } in
+  let dst_block = { dst_block with preds = dst_block.preds @ [src] } in
+  let blocks = cfg.blocks
+    |> StringMap.add src src_block
+    |> StringMap.add dst dst_block
+  in
+  { cfg with blocks }
 
 let predecessors (cfg : cfg) (label : string) : string list =
-  (* TODO: Look up the block with the given label in cfg.blocks
-     and return its preds list.
-     Hint: Use StringMap.find. *)
-  ignore (cfg, label);
-  failwith "TODO: predecessors"
+  let block = StringMap.find label cfg.blocks in
+  block.preds
 
 let successors (cfg : cfg) (label : string) : string list =
-  (* TODO: Look up the block with the given label in cfg.blocks
-     and return its succs list.
-     Hint: Use StringMap.find. *)
-  ignore (cfg, label);
-  failwith "TODO: successors"
+  let block = StringMap.find label cfg.blocks in
+  block.succs
 
 let to_string (cfg : cfg) : string =
-  (* TODO: Build a human-readable string representation of the CFG.
-     For each block, print its label, the number of statements it
-     contains, its successors, and its predecessors.  Format example:
-
-       Block: ENTRY (0 stmts)
-         succs: [B1]
-         preds: []
-
-     Hint: Use StringMap.fold to iterate over cfg.blocks.
-     Use String.concat to join lists of labels. *)
-  ignore cfg;
-  failwith "TODO: to_string"
+  StringMap.fold (fun _label block acc ->
+    let succs_str = String.concat "; " block.succs in
+    let preds_str = String.concat "; " block.preds in
+    acc ^ Printf.sprintf "Block: %s (%d stmts)\n  succs: [%s]\n  preds: [%s]\n\n"
+      block.label (List.length block.stmts) succs_str preds_str
+  ) cfg.blocks ""

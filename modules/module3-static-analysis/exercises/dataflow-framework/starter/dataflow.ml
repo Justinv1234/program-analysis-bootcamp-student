@@ -50,7 +50,44 @@ module StringMap = Map.Make (String)
 
     TODO: Implement this function. It currently raises [Failure "TODO"].
 *)
-let solve (_analysis : 'a analysis)
-    (_cfg : (string * string list * string list) list)
+let solve (analysis : 'a analysis)
+    (cfg : (string * string list * string list) list)
     : (string * 'a * 'a) list =
-  failwith "TODO: implement iterative fixpoint solver"
+  let in_map = ref StringMap.empty in
+  let out_map = ref StringMap.empty in
+  List.iter (fun (label, _, _) ->
+    in_map := StringMap.add label analysis.init !in_map;
+    out_map := StringMap.add label analysis.init !out_map
+  ) cfg;
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    List.iter (fun (label, preds, succs) ->
+      match analysis.direction with
+      | Forward ->
+        let new_in = List.fold_left (fun acc p ->
+          analysis.merge acc (StringMap.find p !out_map)
+        ) analysis.init preds in
+        let new_out = analysis.transfer label new_in in
+        if not (analysis.equal new_out (StringMap.find label !out_map)) then begin
+          changed := true;
+          in_map := StringMap.add label new_in !in_map;
+          out_map := StringMap.add label new_out !out_map
+        end else
+          in_map := StringMap.add label new_in !in_map
+      | Backward ->
+        let new_out = List.fold_left (fun acc s ->
+          analysis.merge acc (StringMap.find s !in_map)
+        ) analysis.init succs in
+        let new_in = analysis.transfer label new_out in
+        if not (analysis.equal new_in (StringMap.find label !in_map)) then begin
+          changed := true;
+          in_map := StringMap.add label new_in !in_map;
+          out_map := StringMap.add label new_out !out_map
+        end else
+          out_map := StringMap.add label new_out !out_map
+    ) cfg
+  done;
+  List.map (fun (label, _, _) ->
+    (label, StringMap.find label !in_map, StringMap.find label !out_map)
+  ) cfg
